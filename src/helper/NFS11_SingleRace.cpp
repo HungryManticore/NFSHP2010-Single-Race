@@ -1,5 +1,7 @@
 // NFS11_SingleRace.asi - Single Race helper for the original Need for Speed Hot Pursuit (2010), NFS11.exe 1.0.5.0.
 // v10 (2026-11-26): names of the 23 Remastered-only routes (RouteNames.h, event set v3) set into empty strings.
+// v11.1 (2026-11-27): message pool overflow guard (pool.inc): a full per-frame pool drops the record instead of
+//   returning null (crash in the vehicle command handler at the loading screen).
 // v11 (2026-11-26): opponents written into the event record at StopTraffic (AI finish-message names, port of the
 //   Remastered v39); route names always on, for the 10 online-only routes of event set v4 (n 42-51).
 // v9 (2026-11-26): intro name tags hidden in Single Race events (tag format string -> empty); the loading screen shows
@@ -51,7 +53,7 @@
 #include <string>
 
 static const DWORD kExpectedTimestamp = 0x4DC1385A;
-static const char* kVersion = "helper 11";
+static const char* kVersion = "helper 11.1";
 #include "VehicleTable.h"
 #include "PaintTable.h"
 
@@ -586,6 +588,7 @@ static bool InstallIntroHook() {
 #include "intro_loading.inc"
 #include "crash.inc"
 #include "opponents.inc"
+#include "pool.inc"
 
 // ---- keys
 static DWORD WINAPI KeyThread(LPVOID) {
@@ -647,6 +650,7 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID) {
     Log("---- NFS11 Single Race %s loaded%s", kVersion, fresh ? " (default ini written)" : "");
     InstallCrashLogger(dir);
     if (!CheckGame()) return TRUE;
+    InstallPoolGuard();
     if (PatchSiteChained(kSendCommandLink, (uint32_t)&Hook_SendCommandLink, &g_origSendCommandLink))
         Log("SendCommandLink hooked");
     if (PatchSiteChained(kStopTraffic, (uint32_t)&Hook_StopTraffic, &g_origStopTraffic) &&
